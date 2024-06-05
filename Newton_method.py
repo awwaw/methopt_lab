@@ -2,14 +2,15 @@ import numpy as np
 
 from Function import Function
 from numpy.linalg import LinAlgError
-import math
+from math import *
 
 
 def main():
-    rosenbrok_lagrange = Function("(1-x)**2 + 100 * (y-x**2)**2 - z * (y + x**2)")
+    # rosenbrok_lagrange = Function("(1-x)**2 + 100 * (y-x**2)**2 - z * (y + x**2)")
     rosenbrok = Function("(1-x)**2 + 100 * (y-x**2)**2")
-    start = [0.15, -0.0225, -3]
-    result = newton(rosenbrok_lagrange, start, 1e-5)
+    constraint = Function("y + x**2")
+    start = [0.15, -0.0225]
+    result = newton(rosenbrok, constraint, start, 1e-5)
     ans = result[0]
     value = rosenbrok.compute(ans)
     print(f"Found minimum in {result[-1]} iterations. Minimum value is {value} at {ans}")
@@ -22,7 +23,7 @@ def norm(x: list[float]) -> float:
     :param x:
     :return:
     """
-    return math.sqrt(sum(map(lambda x_: x_ ** 2, x)))
+    return sqrt(sum(map(lambda x_: x_ ** 2, x)))
 
 
 def stop_condition(eps: float, last_x: list[float], current_x: list[float], next_x: list[float]) -> bool:
@@ -48,11 +49,35 @@ def stop_condition(eps: float, last_x: list[float], current_x: list[float], next
     return a / abs(1 - a / b) < eps
 
 
-def newton(f: Function, point: list[float], epsilon: float) -> tuple[list[float], int]:
+def compute_KKT(f: Function, constraint: Function, point: list[float]) -> np.ndarray:
+    hessian = f.hessian_at_point(point)
+    if hessian.det() == 0.0:
+        raise LinAlgError(f"det of Hessian of function at point {point} is equal to 0")
+
+    gradient = f.gradient(point)
+    constraint_gradient = constraint.gradient(point)
+
+    KKT = np.matrix(hessian, dtype='float64')
+    KKT = np.vstack((KKT, constraint_gradient))
+    column = np.append(constraint_gradient, [0.]).reshape((3, 1))
+    KKT = np.append(KKT, column, axis=1)
+
+    constraint_value = constraint.compute(point)
+    b_column = np.append(gradient, constraint_value)
+    b_column = (b_column * (-1)).reshape((3, 1))
+
+    # Now we have to solve equation KKT * x = b to find our step
+
+    X = np.linalg.solve(KKT, b_column).reshape((1, 3))[0]
+    return X
+
+
+def newton(f: Function, h: Function, point: list[float], epsilon: float) -> tuple[list[float], int]:
     """
     Constrained Newton's method implication.
 
-    :param f: Lagrangian of a function which minimization is desired
+    :param f: Function minimization of which is desired
+    :param h: Constraint function
     :param point: starting approximation of minimum
     :param epsilon: value of approximation
     :return: tuple of resulting point and number of iterations
@@ -63,18 +88,13 @@ def newton(f: Function, point: list[float], epsilon: float) -> tuple[list[float]
 
     while True:
         iterations += 1
-        # inversed_hessian = f.hessian_at_point(xn).inv()
-        # gradient = f.gradient(point)
-        # direction = np.asarray(inversed_hessian * gradient)[0]
-        #
-        # next_x = list(np.asarray(xn) - direction)
-        hessian = f.hessian_at_point(xn)
-        if hessian.det() == 0.0:
-            raise LinAlgError(f"det of Hessian of function at point {xn} is equal to 0")
 
-        gradient = f.gradient(xn)
-        p = np.asarray(-(hessian.inv() * gradient))
-        next_x = [x_i + p_i[0] for x_i, p_i in zip(xn, p)]
+        X = compute_KKT(f, h, xn)
+        dx = X[0]
+        dy = X[1]
+        dl = X[2]
+
+        next_x = list(np.asarray(xn) + np.asarray([dx, dy]))
 
         if stop_condition(epsilon, last_x, xn, next_x):
             return next_x, iterations
@@ -87,5 +107,33 @@ def newton(f: Function, point: list[float], epsilon: float) -> tuple[list[float]
             print(f"Current point is {xn}")
 
 
-if __name__ == "__main__":
+def test_1():
+    paraboloid = Function("x**2 / 2 + y**2 / 2")
+    constraint = Function("x + y")
+    start = [0.15, -0.0225]
+    result = newton(paraboloid, constraint, start, 1e-5)
+    ans = result[0]
+    value = paraboloid.compute(ans)
+    print(f"Found minimum in {result[-1]} iterations. Minimum value is {value} at {ans}")
+
+
+def test_2():
+    paraboloid = Function("-20.0 * exp(-0.2 * sqrt(0.5 * (x**2 + y**2)))")
+    constraint = Function("y**2 + x**2 - 9")
+    start = [-0.06, 0.25]
+    result = newton(paraboloid, constraint, start, 1e-5)
+    ans = result[0]
+    value = paraboloid.compute(ans)
+    print(f"Found minimum in {result[-1]} iterations. Minimum value is {value} at {ans}")
+
+
+def test():
     main()
+    print()
+    test_1()
+    print()
+    test_2()
+
+
+if __name__ == "__main__":
+    test()
