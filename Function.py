@@ -1,7 +1,6 @@
 import numdifftools as nd
 from scipy.optimize import approx_fprime
 from sympy import hessian, symbols, sympify
-from Point import Point
 
 
 class Function:
