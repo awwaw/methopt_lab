@@ -6,14 +6,19 @@ from math import *
 
 
 def main():
-    # rosenbrok_lagrange = Function("(1-x)**2 + 100 * (y-x**2)**2 - z * (y + x**2)")
     rosenbrok = Function("(1-x)**2 + 100 * (y-x**2)**2")
     constraint = Function("y + x**2")
-    start = [0.15, -0.0225]
-    result = newton(rosenbrok, constraint, start, 1e-5)
-    ans = result[0]
-    value = rosenbrok.compute(ans)
-    print(f"Found minimum in {result[-1]} iterations. Minimum value is {value} at {ans}")
+    starting_points = [
+        [0.15, -0.0225],
+        [-0.01, 0.01],
+        [1, -1],
+        [0.5, 0.5]
+    ]
+    for start in starting_points:
+        result = newton(rosenbrok, constraint, start, 1e-5)
+        ans = result[0]
+        value = rosenbrok.compute(ans)
+        print(f"Found minimum in {result[-1]} iterations. Minimum value is {value} at {ans}")
 
 
 def norm(x: list[float]) -> float:
@@ -139,9 +144,9 @@ def test_2():
 def test():
     main()
     print()
-    test_1()
-    print()
-    test_2()
+    # test_1()
+    # print()
+    # test_2()
 
 
 if __name__ == "__main__":
