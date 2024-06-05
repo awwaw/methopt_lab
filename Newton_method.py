@@ -50,6 +50,15 @@ def stop_condition(eps: float, last_x: list[float], current_x: list[float], next
 
 
 def compute_KKT(f: Function, constraint: Function, point: list[float]) -> np.ndarray:
+    """
+    Method used to find dx in Newton's method.\n
+    Here we solve system of equations with KKT matrix made of function's Hessian and constraint's gradient
+
+    :param f: function to minimize
+    :param constraint: well, constraint
+    :param point: current point
+    :return: step that we need to do to progress in newton's method
+    """
     hessian = f.hessian_at_point(point)
     if hessian.det() == 0.0:
         raise LinAlgError(f"det of Hessian of function at point {point} is equal to 0")
