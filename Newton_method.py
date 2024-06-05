@@ -8,27 +8,6 @@ import math
 def main():
     rosenbrok_lagrange = Function("(1-x)**2 + 100 * (y-x**2)**2 - z * (y + x**2)")
     rosenbrok = Function("(1-x)**2 + 100 * (y-x**2)**2")
-    # xs = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
-    # ys = [-0.02, -0.019, -0.018, -0.017, -0.016]
-    # zs = [-0.6, -0.5, -0.4, -0.3, -0.2, -0.1]
-    # epss = [1e-8, 1e-7, 1e-9, 1e-6, 1e-5]
-    # results = []
-    # for x in xs:
-    #     for y in ys:
-    #         for z in zs:
-    #             for eps in epss:
-    #                 print(f"Starting with x = {x}, y = {y}, lambda = {z}, eps = {1e-5}")
-    #                 res = newton(rosenbrok_lagrange, [x, y, z], 10**-5)
-    #                 point = res[0]
-    #                 value = rosenbrok.compute(point)
-    #                 iterations = res[1]
-    #                 results.append((value, iterations, point, [x, y, z, 10**-5]))
-    # results.sort()
-    # best_val = results[0][0]
-    # best_iters = results[0][1]
-    # best_point = results[0][2]
-    # print(f"Found minimum of function in {best_iters} iterations.\n Value is {best_val} at {best_point}")
-    # print(f"Best args - {results[0][-1]}")
     start = [0.15, -0.0225, -3]
     result = newton(rosenbrok_lagrange, start, 1e-5)
     ans = result[0]
