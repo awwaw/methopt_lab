@@ -1,10 +1,15 @@
+import random
 import sys
+import time
 
 import numpy as np
 from scipy.optimize import approx_fprime
 
 
 class ParametrizedFunction:
+    """
+    Class for given function, which can compute value of a function and gradient at given point
+    """
     def __init__(self, parameter: int):
         self._N = parameter
 
@@ -12,7 +17,7 @@ class ParametrizedFunction:
         return self._N
 
     def compute(self, point: list[float]):
-        values = [100 * (point[2 * idx - 2] ** 2 - point[idx * 2 - 1]) + (point[idx * 2 - 2] - 1) ** 2
+        values = [100 * (point[2 * idx - 2] ** 2 - point[idx * 2 - 1]) ** 2 + (point[idx * 2 - 2] - 1) ** 2
                   for idx in range(1, self._N // 2 + 1)]
         return sum(values)
 
@@ -42,18 +47,29 @@ def take_step(s: list[np.ndarray],
     q = function.gradient(start)
     alphas = []
     for i in range(m - 1, -1, -1):
-        alpha = rhos[i] * s[i] * get_vertical(q)
+        alpha = (rhos[i] * s[i] * get_vertical(q))[0, 0]
+        print(f"alpha = {alpha}")
         alphas.append(alpha)
         q -= alpha * y[i]
 
-    gamma = (s[-1] * get_vertical(y[-1])) / (y[-1] * get_vertical(y[-1]))
+    print(f"q = {q}")
+    print(f"s = {s}")
+    print(f"y = {y}")
+    print(f"alpha = {alphas}")
+    print(f"rhos = {rhos}")
+
+    gamma = ((s[-1] * get_vertical(y[-1])) / (y[-1] * get_vertical(y[-1])))[0, 0]
     H = gamma * np.ones((function.get_N(), function.get_N()))
-    z = H * q
+    z = H * get_vertical(q)
+
+    print(f"z = {z}")
 
     for i in range(m):
-        beta = rhos[i] * y[i] * z
+        beta = (rhos[-1] * y[i] * z)[0, 0]
         z += get_vertical(s[i]) * (alphas[i] - beta)
-    return z
+
+    print(f"result - {np.asarray(z.transpose())[0]}")
+    return np.asarray(z.transpose())[0]
 
 
 def L_BGFGS(start: list[float], function: ParametrizedFunction, m: int, eps: float = 1e-6) -> np.ndarray:
@@ -61,7 +77,6 @@ def L_BGFGS(start: list[float], function: ParametrizedFunction, m: int, eps: flo
     s = [values[0]]
     y = [values[1]]
     rhos = [1 / np.dot(s[0], y[0])]
-    N = function.get_N()
 
     # print(np.asmatrix(y[0]) * get_vertical(s[0])) # Returns number
     # print(get_vertical(s[0]) * np.asmatrix(y[0])) # Returns matrix
@@ -72,10 +87,20 @@ def L_BGFGS(start: list[float], function: ParametrizedFunction, m: int, eps: flo
         y.append(y[-1])
         rhos.append(rhos[-1])
 
-    xn = np.asarray(start.copy())
+    print("==== Initial values ====")
+    print(f"s = {s}")
+    print(f"y = {y}")
+    print(f"rhos = {rhos}")
+    print()
+    print()
+
+    xn = start.copy()
     while True:
         direction = take_step(s, y, rhos, function, xn, m)
-        x_next = xn + direction
+        print(direction)
+        print(xn)
+        print()
+        x_next = np.asarray(xn) - direction
 
         if abs(function.compute(list(x_next)) - function.compute(list(xn))) < eps:
             return x_next
@@ -92,12 +117,26 @@ def L_BGFGS(start: list[float], function: ParametrizedFunction, m: int, eps: flo
         rhos.pop(0)
         rhos.append(rho_next)
 
+        xn = x_next
+
+
+def test(m: int = 10):
+    # Ns = [2, 4, 6]
+    Ns = [2]
+    for N in Ns:
+        starting_point = np.random.rand(N) * random.randint(-3, 3)
+        function = ParametrizedFunction(N)
+        argmin = L_BGFGS(list(starting_point), function, m)
+        print("==== Arguments ====")
+        print(f"N = {N}, m = {m}")
+        print(f"Minimal value is {function.compute(list(argmin))} at {argmin}")
+        print("===================")
+
 
 def main():
-    print(sys.argv)
-    N = int(sys.argv[1])
-    function = ParametrizedFunction(N)
-    print(function.compute([2, 1]))
+    # N = int(sys.argv[1])
+    # function = ParametrizedFunction(N)
+    test()
 
 
 if __name__ == "__main__":
