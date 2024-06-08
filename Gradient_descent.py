@@ -9,6 +9,10 @@ from scipy.optimize import approx_fprime
 def main():
     rosenbrok_lagrange = Function("(1-x)**2 + 100 * (y-x**2)**2 - z * (y + x**2)")
     constraint = Function("y + x**2")
+
+    """
+    Here we can see, that first 4 starting points end up with arguably good minimum value, but 5th is going bad :(
+    """
     starting_points = [
         [0.103, -0.01, 0],
         [0.05, -0.05, 0],
@@ -16,6 +20,7 @@ def main():
         [1, -1, 1.2],
         [0.23, 0.32, 0]
     ]
+
     for start in starting_points:
         result = gradient_descend(rosenbrok_lagrange, constraint, start, 1e-4)
         ans = result[0]

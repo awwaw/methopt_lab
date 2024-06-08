@@ -40,7 +40,7 @@ class Function:
         return eval(self.string_value)
 
     def gradient(self, point: list[float]):
-        return approx_fprime(point, self._get_func(), 1e-6)
+        return approx_fprime(point, self._get_func(), 1e-7)
 
     def hessian(self):
         if self.dimension == 2:
