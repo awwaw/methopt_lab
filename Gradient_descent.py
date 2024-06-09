@@ -72,7 +72,7 @@ def choose_step(current_x: list[float], direction: np.ndarray, f: Callable[[list
         iterations += 1
 
         if check_wolfe_conditions(step, current_x, f, direction):
-            return step * 1e7
+            return step
 
         step *= coefficient
 

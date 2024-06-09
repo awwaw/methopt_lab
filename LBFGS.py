@@ -1,12 +1,10 @@
 import random
 import sys
-import time
 from functools import reduce
 import operator
 
 import numpy as np
 from scipy.optimize import approx_fprime
-from Gradient_descent import choose_step
 
 
 class ParametrizedFunction:
@@ -41,29 +39,53 @@ def get_vertical(arr: np.ndarray) -> np.ndarray:
     return np.asmatrix(arr).transpose()
 
 
-def get_index(k: int, m: int, i: int) -> int:
-    """
-    [k - m + 1, k] -> [0, m - 1]
-
-    :param k:
-    :param m:
-    :param i:
-    :return:
-    """
-    if k < m:
-        return i - (k - m + 1)
-    return i - 1
-
-
 def get_V_i(N: int,
             i: int,
             s: list[np.ndarray],
             y: list[np.ndarray],
             rhos: list[float]) -> np.matrix:
     I = np.identity(N)
-    if len(s) > 0:
-        return I - rhos[i - 1] * get_vertical(y[i - 1]) * s[i - 1]
-    return np.asmatrix(I)
+    return I - rhos[i] * get_vertical(y[i]) * s[i]
+
+
+def get_steplenth(f: ParametrizedFunction, start: np.ndarray, direction: np.ndarray):
+    e1 = 0.8
+    e2 = 0.2
+    l = 0.8
+    a = 1
+    cnt_func = 1
+    cnt_grad = 0
+    f_last = f.compute(list(start))
+
+    x_new = [x + a * p_i for x, p_i in zip(start, direction)]
+    diff1 = f.compute(x_new) - f_last
+    cnt_func += 1
+
+    gradient_x_new = f.gradient(x_new)
+    diff2 = np.dot(np.squeeze(np.asarray(gradient_x_new)), np.squeeze(np.asarray(direction)))
+    cnt_grad += 1
+
+    gradient = f.gradient(list(start))
+    tangent = np.dot(np.squeeze(np.asarray(gradient)), np.squeeze(np.asarray(direction)))
+    l1 = e1 * a * tangent
+    l2 = e2 * tangent
+
+    eps = 1e-6
+    while (diff1 - l1 > eps) and (diff2 - l2 >= eps):
+        a = l * a
+
+        x_new = [x + a * p_i for x, p_i in zip(start, direction)]
+        diff1 = f.compute(x_new) - f_last
+        cnt_func += 1
+
+        gradient_x_new = f.gradient(x_new)
+        diff2 = np.dot(np.squeeze(np.asarray(gradient_x_new)), np.squeeze(np.asarray(direction)))
+        cnt_grad += 1
+
+        tangent = np.dot(np.squeeze(np.asarray(gradient)), np.squeeze(np.asarray(direction)))
+        l1 = e1 * a * tangent
+        l2 = e2 * tangent
+    return a
 
 
 def take_step(x: np.ndarray,
@@ -75,42 +97,41 @@ def take_step(x: np.ndarray,
               k: int,
               m: int) -> tuple[np.ndarray, np.matrix]:
     grad = function.gradient(list(x))
-    d = np.asarray(-H * get_vertical(grad)).transpose()[0]
-    print(f"grad = {grad}")
-    print(f"H = {H}")
-    print(f"x = {x}")
-    print(f"d = {d}")
-    step = choose_step(list(x), grad, function.compute)
+    d = -np.asarray(H * get_vertical(grad)).transpose()[0]
+    step = get_steplenth(function, x, d)
     x_next = x + step * d
+
+    if len(s) == m:
+        s.pop(0)
+    new_s = x_next - x
+    s.append(new_s)
+
+    if len(y) == m:
+        y.pop(0)
+    new_y = function.gradient(list(x_next)) - function.gradient(list(x))
+    y.append(new_y)
+
+    if len(rhos) == m:
+        rhos.pop(0)
+    rho = 1 / (y[-1] * get_vertical(s[-1]))[0, 0]
+    rhos.append(rho)
 
     m1 = min(k, m - 1)
     N = function.get_N()
-    # V = get_V_i(N, 0, s, y, rhos).transpose()
-    # for i in range(1, m1 + 1):
-    #     print(k, m1, i, k - i, k - m1)
-    #     V_i = get_V_i(N, k - i, s, y, rhos).transpose()
-    #     V *= V_i
-    # V_right = get_V_i(N, 1, s, y, rhos)
-    # for i in range(1, k + 1):
-    #     V_i = get_V_i(N, i, s, y, rhos)
-    #     V_right *= V_i
+
     vs = [get_V_i(N, j, s, y, rhos).transpose() for j in range(m1, -1, -1)]
     left = reduce(operator.mul, vs, np.identity(N))
-    vs_right = [get_V_i(N, j, s, y, rhos) for j in range(1, m1 + 1)]
+    vs_right = [get_V_i(N, j, s, y, rhos) for j in range(0, m1 + 1)]
     right = reduce(operator.mul, vs_right, np.identity(N))
     H_new = left * H * right
 
-    # for i in range(k - m1, k + 1):
     for i in range(0, m1 + 1):
-        if len(s) > 0:
-            center = get_vertical(s[i - 1]) * s[i - 1]
-            vs = [get_V_i(N, j, s, y, rhos).transpose() for j in range(m1, -1, -1)]
-            left = reduce(operator.mul, vs, np.ones((N, N)))
-            vs_right = [get_V_i(N, j, s, y, rhos) for j in range(1, m1 + 1)]
-            right = reduce(operator.mul, vs_right, np.ones((N, N)))
-            H_new += rhos[i - 1] * left * center * right
-        else:
-            H_new = H
+        center = get_vertical(s[i]) * s[i]
+        vs = [get_V_i(N, j, s, y, rhos).transpose() for j in range(m1, i, -1)]
+        left = reduce(operator.mul, vs, np.identity(N))
+        vs_right = [get_V_i(N, j, s, y, rhos) for j in range(i + 1, m1 + 1)]
+        right = reduce(operator.mul, vs_right, np.identity(N))
+        H_new += rhos[i] * left * center * right
     return x_next, H_new
 
 
@@ -127,42 +148,16 @@ def L_BFGS(start: list[float], function: ParametrizedFunction, m: int, eps: floa
         x_next, H_next = take_step(xn, function, H, s, y, rhos, k, m)
         H = H_next
 
-        print(x_next)
-        print(H_next)
-
-        if len(s) == m:
-            s.pop(0)
-        new_s = x_next - xn
-        s.append(new_s)
-
-        if len(y) == m:
-            y.pop(0)
-        new_y = function.gradient(list(x_next)) - function.gradient(list(xn))
-        y.append(new_y)
-
-        if len(rhos) == m:
-            rhos.pop(0)
-            rho = 1 / (y[-1] * get_vertical(s[-1]))[0, 0]
-            # rhos.append(rho)
-            rhos.append(1)
-        else:
-            rhos.append(1)
-
-        print("Result on this step")
-        print(x_next)
-        print(xn)
-        print(function.compute(list(x_next)))
-        print(function.compute(list(xn)))
-        if k > m and abs(function.compute(list(x_next)) - function.compute(list(xn))) < eps:
+        if np.linalg.norm(function.gradient(list(x_next))) < eps:
             print(f"Finished in {k - m} iterations")
             return x_next if function.compute(list(x_next)) < function.compute(list(xn)) else xn
 
         k += 1
+        xn = x_next.copy()
 
 
 def test(m: int = 10):
-    # Ns = [2, 4, 6]
-    Ns = [2]
+    Ns = [2, 4, 6]
     for N in Ns:
         starting_point = np.random.rand(N) * random.randint(-5, 5)
         function = ParametrizedFunction(N)
@@ -172,6 +167,7 @@ def test(m: int = 10):
         print(f"Starting point = {starting_point}")
         print(f"Minimal value is {function.compute(list(argmin))} at {argmin}")
         print("===================")
+        print()
 
 
 def main():
