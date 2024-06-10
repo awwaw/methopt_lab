@@ -94,9 +94,10 @@ def gradient_descend(f: Function, constraint: Function, start: list[float], eps:
 
         grad = gradient(norm_grad, xn)
         step = choose_step(xn, grad, norm_grad)
+        # step = get_steplenth(norm_grad, np.asarray(xn), np.asarray(grad))
         next_x = list(np.asarray(xn) - step * grad)
 
-        if abs(norm_grad(next_x) - norm_grad(xn)) < eps:  # and abs(constraint.compute(next_x[:-1])) < eps:
+        if iterations == 30 or abs(norm_grad(next_x)) < eps:  # and abs(constraint.compute(next_x[:-1])) < eps:
             return next_x, iterations
 
         last_x = xn.copy()

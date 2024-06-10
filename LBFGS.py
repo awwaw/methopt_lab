@@ -53,17 +53,13 @@ def get_steplenth(f: ParametrizedFunction, start: np.ndarray, direction: np.ndar
     e2 = 0.2
     l = 0.8
     a = 1
-    cnt_func = 1
-    cnt_grad = 0
     f_last = f.compute(list(start))
 
     x_new = [x + a * p_i for x, p_i in zip(start, direction)]
     diff1 = f.compute(x_new) - f_last
-    cnt_func += 1
 
     gradient_x_new = f.gradient(x_new)
     diff2 = np.dot(np.squeeze(np.asarray(gradient_x_new)), np.squeeze(np.asarray(direction)))
-    cnt_grad += 1
 
     gradient = f.gradient(list(start))
     tangent = np.dot(np.squeeze(np.asarray(gradient)), np.squeeze(np.asarray(direction)))
@@ -76,11 +72,9 @@ def get_steplenth(f: ParametrizedFunction, start: np.ndarray, direction: np.ndar
 
         x_new = [x + a * p_i for x, p_i in zip(start, direction)]
         diff1 = f.compute(x_new) - f_last
-        cnt_func += 1
 
         gradient_x_new = f.gradient(x_new)
         diff2 = np.dot(np.squeeze(np.asarray(gradient_x_new)), np.squeeze(np.asarray(direction)))
-        cnt_grad += 1
 
         tangent = np.dot(np.squeeze(np.asarray(gradient)), np.squeeze(np.asarray(direction)))
         l1 = e1 * a * tangent
