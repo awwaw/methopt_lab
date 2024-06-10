@@ -162,8 +162,5 @@ def main():
     print(f"Minimum of function is {function.compute(list(result))} at {result}")
 
 
-
-
-
 if __name__ == "__main__":
     main()
