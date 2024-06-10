@@ -37,6 +37,14 @@ def choose_edges(n: int) -> tuple[int, int]:
 
 
 def get_cost(graph: list[list[int]], permutation: np.ndarray) -> int:
+    """
+    Returns a summary cost of path in given graph
+
+    :param graph:
+    :param permutation:
+    :return:
+    """
+
     sm = 0
     for i in range(len(permutation) - 1):
         v, u = permutation[i], permutation[i + 1]
