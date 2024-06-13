@@ -1,4 +1,4 @@
-from typing import IO
+from typing import IO, Optional, Union
 
 import numpy as np
 
@@ -27,9 +27,10 @@ class LinearProgrammingProblem:
         A - n*m matrix of constraints coefficients\n
         b - m*1 column of constraints values\n
     """
-    def __init__(self, filename: str):
-        self.n: int = -1
-        self.m: int = -1
+    def __init__(self, filename: str, gomory: bool):
+        self.gomory = gomory
+        self.n: int = 0
+        self.m: int = 0
         self.expression: np.ndarray = None
         self.A: np.matrix = None
         self.b: np.ndarray = None
@@ -57,6 +58,13 @@ class LinearProgrammingProblem:
             row = list(map(int, lines[i].split()))
             b.append(row[-1])
             mx.append(row[:-1])
+        if self.gomory:
+            for i in range(self.n):
+                row = np.zeros(self.n)
+                row[i] = 1
+                mx.append(list(row))
+            b += list(np.ones(self.n))
+            self.m += self.n
         self.A = np.asmatrix(mx)
         self.b = np.asarray(b)
 
@@ -124,7 +132,8 @@ def get_answer(matrix: np.ndarray, basis: list[int]) -> list[float]:
     return ans
 
 
-def simplex(problem: LinearProgrammingProblem) -> tuple[list[float], float]:
+def simplex(problem: LinearProgrammingProblem,
+            return_basis: bool = False) -> Union[tuple[list[float], float], tuple[np.ndarray, list[int]]]:
     matrix = preparations(problem)
 
     iterations = 0
@@ -136,11 +145,13 @@ def simplex(problem: LinearProgrammingProblem) -> tuple[list[float], float]:
 
     ans = get_answer(matrix, basis)
     value = matrix[-1, -1]
+    if return_basis:
+        return matrix, basis
     return ans, value
 
 
 def main():
-    problem = LinearProgrammingProblem("linear_problem.txt")
+    problem = LinearProgrammingProblem("linear_problem.txt", False)
     print(problem)
 
     res, value = simplex(problem)
