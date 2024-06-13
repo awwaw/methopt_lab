@@ -30,7 +30,7 @@ class LinearProgrammingProblem:
     def __init__(self, filename: str):
         self.n: int = -1
         self.m: int = -1
-        self.statement: np.ndarray = None
+        self.expression: np.ndarray = None
         self.A: np.matrix = None
         self.b: np.ndarray = None
         file = open(filename, 'r')
@@ -38,9 +38,19 @@ class LinearProgrammingProblem:
         file.close()
 
     def initialize(self, file: IO):
+        """
+        Initialize starting values from file.\n
+        The task must be specified in the following order:
+        Numbers n, m denoting the number of variables and the number of restrictions, respectively
+        Coefficients of the expression to be minimized
+        Matrix of coefficients in restrictions and boundary values
+
+        :param file:
+        :return:
+        """
         lines = file.readlines()
         self.n, self.m = map(int, lines[0].split())
-        self.statement = np.asarray(list(map(int, lines[1].split())))
+        self.expression = np.asarray(list(map(int, lines[1].split())))
         mx = []
         b = []
         for i in range(2, len(lines)):
@@ -55,7 +65,7 @@ class LinearProgrammingProblem:
         res += "Linear Programming Problem:\n"
         res += "===========================\n"
         res += "Minimize:\n"
-        tokens = get_printable_statement(self.statement)
+        tokens = get_printable_statement(self.expression)
         res += " ".join(tokens) + "\n"
 
         res += "With constraints:\n"
@@ -70,7 +80,7 @@ def get_vertical(arr: np.ndarray) -> np.ndarray:
 
 
 def preparations(problem: LinearProgrammingProblem) -> np.ndarray:
-    last_row = np.concatenate((-problem.statement, np.zeros(problem.n + problem.m + 1 - len(problem.statement))))
+    last_row = np.concatenate((-problem.expression, np.zeros(problem.n + problem.m + 1 - len(problem.expression))))
     matrix = np.vstack((np.hstack((problem.A, np.identity(problem.m), get_vertical(problem.b))), last_row))
     return matrix
 
